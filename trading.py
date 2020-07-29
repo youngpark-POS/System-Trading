@@ -1,6 +1,8 @@
+# python system trading program using PyQt
+# author : youngpark-POS
+
 import sys
 
-from PyQt5.QAxContainer import QAxWidget
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QAxContainer import *
@@ -17,6 +19,11 @@ class MyWindow(QMainWindow, ui_form):
         self.kiwoom = QAxWidget("KHOPENAPI.KHOpenAPICtrl.1")
         self.pushButton.clicked.connect(self.login)
         self.pushButton2.clicked.connect(self.check_status)
+        '''
+        when I click pushButton(login button), 
+        the program finishes with exit code 0xC0000409.
+        why this happens?
+        '''
 
     def login(self):
         self.kiwoom.dynamicCall("CommConnect()")
