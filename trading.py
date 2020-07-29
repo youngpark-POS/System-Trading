@@ -15,16 +15,12 @@ class MyWindow(QMainWindow, ui_form):
         self.setupUi(self)
 
         self.kiwoom = QAxWidget("KHOPENAPI.KHOpenAPICtrl.1")
-        self.login()
-        self.kiwoom.OnEventConnect.connect(self.event_connect)
-        '''
         self.pushButton.clicked.connect(self.login)
         self.pushButton2.clicked.connect(self.check_status)
-        '''
 
     def login(self):
         self.kiwoom.dynamicCall("CommConnect()")
-        # self.kiwoom.OnEventConnect.connect(self.event_connect)
+        self.kiwoom.OnEventConnect.connect(self.event_connect)
 
     def check_status(self):
         if self.kiwoom.dynamicCall("GetConnectedState()") == 0:
@@ -48,4 +44,3 @@ if __name__ == "__main__":
     myWindow = MyWindow()
     myWindow.show()
     app.exec_()
-    
