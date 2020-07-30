@@ -20,7 +20,11 @@ class MyWindow(QMainWindow, ui_form):
         self.kiwoom = QAxWidget("KHOPENAPI.KHOpenAPICtrl.1")
         self.pushButton.clicked.connect(self.login)
         self.pushButton2.clicked.connect(self.check_status)
-        self.items = {}
+        self.itemPrice.setMaximum(0x7FFFFFFF)
+        self.itemList = {}
+
+        self.viewButton.clicked.connect(self.search_Item(self.itemName.toPlainText()))
+        self.kiwoom.OnReceiveTrData.connect(self.receive_TrData)
 
     def setupUI(self):
         self.setupUi(self)
@@ -75,12 +79,27 @@ class MyWindow(QMainWindow, ui_form):
 
     def get_items(self, *market_list):
         for market in market_list:
-            codeList = self.kiwoom.dynamicCall("GetCodeListByMarket(QString)", market).split(';')
+            codeList = self.kiwoom.dynamicCall("GetCodeListByMarket(QString)", str(market)).split(';')
             del codeList[-1]
             for code in codeList:
                 name = self.kiwoom.dynamicCall("GetMasterCodeName(QString)", code)
+                self.itemList[code] = name
 
-                self.items[code] = name
+    def search_Item(self, itemName):
+        for code, item in self.itemList.items():
+            if itemName == item:
+                self.itemCode.setPlainText(code)
+                self.get_iteminfo(code)
+
+    def get_iteminfo(self, code):
+        self.kiwoom.dynamicCall("SetInputValue(QString, QString)", "종목코드", code)
+        self.kiwoom.dynamicCall("CommRqData(QString, QString, int, QString)", "coingo", "OPT10081", 0, "8888")
+
+    def receive_TrData(self, *args):
+        # args[1] is sRQName, args[2] is sTrcode
+        if args[1] == "coingo" and args[2] == "OPT10081":
+            curr_price = int(self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString", args[2], args[1], 0, "현재가"))
+            self.itemPrice.setValue(curr_price)
 
 
 if __name__ == "__main__":
@@ -88,3 +107,9 @@ if __name__ == "__main__":
     myWindow = MyWindow()
     myWindow.show()
     app.exec_()
+
+
+
+
+
+
