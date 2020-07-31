@@ -10,49 +10,27 @@ from PyQt5.QAxContainer import *
 from PyQt5 import uic
 import sqlite3
 
-ui_form = uic.loadUiType("main_window.ui")[0]
+ui_form = uic.loadUiType("new_main_window.ui")[0]
 
 
 class MyWindow(QMainWindow, ui_form):
     def __init__(self):
         super().__init__()
-
+        self.setupUI()
         self.kiwoom = QAxWidget("KHOPENAPI.KHOpenAPICtrl.1")
-        self.pushButton.clicked.connect(self.login)
-        self.pushButton2.clicked.connect(self.check_status)
-        self.itemPrice.setMaximum(0x7FFFFFFF)
-        self.itemList = {}
-
-        self.viewButton.clicked.connect(self.search_Item(self.itemName.toPlainText()))
-        self.kiwoom.OnReceiveTrData.connect(self.receive_TrData)
+        self.kiwoom.dynamicCall("CommConnect()")
+        self.kiwoom.OnEventConnect.connect(self.event_connect)
+        self.textEdit.setEnabled(False)
+        self.searchButton.clicked.connect(self.search_item)
+        self.kiwoom.OnReceiveTrData.connect(self.receive_Trdata)
 
     def setupUI(self):
         self.setupUi(self)
 
-        columns = ["00: 지정가", "03: 시장가", "05: 조건부지정가", "06: 최유리지정가", "07: 최우선지정가",
-                   "10: 지정가IOC", "13: 시장가IOC", "16: 최유리IOC", "17: 최우선IOC", "20: 지정가FOK",
-                   "23: 시장가FOK", "26: 최유리FOK", "61: 장전시간외종가", "62: 시간외단일기매매", "81: 장후시간외종가"]
-        self.typeBox.addItems(columns)
-        columns = ["매수", "매도", "매수정정", "매도정정"]
-        self.tradeType.addItems(columns)
-
-    def login(self):
-        self.kiwoom.dynamicCall("CommConnect()")
-        self.kiwoom.OnEventConnect.connect(self.event_connect)
-
-    def check_status(self):
-        if self.kiwoom.dynamicCall("GetConnectedState()") == 0:
-            self.statusBar().showMessage("Not Connected")
-        else:
-            self.statusBar().showMessage("Connected")
-
     def event_connect(self, errcode):
         if errcode == 0:
             self.statusBar().showMessage("OK")
-            self.get_login_info()
-            self.pushButton.hide()
-            self.pushButton2.hide()
-            self.get_items(0, 10)
+            self.textEdit.append("Login Success")
         elif errcode == -100:
             self.statusBar().showMessage("User information exchange failed")
         elif errcode == -101:
@@ -60,46 +38,21 @@ class MyWindow(QMainWindow, ui_form):
         elif errcode == -102:
             self.statusBar().showMessage("Version progress failed")
 
-    def get_login_info(self):
-        accCnt = self.kiwoom.dynamicCall("GetLoginInfo(QString)", "ACCOUNT_CNT")
-        accList = self.kiwoom.dynamicCall("GetLoginInfo(QString)", "ACCLIST").split(';')
-        del accList[-1]
-        userid = self.kiwoom.dynamicCall("GetLoginInfo(QString)", "USER_ID")
-        userName = self.kiwoom.dynamicCall("GetLoginInfo(QString)", "USER_NAME")
-        ketSec = self.kiwoom.dynamicCall("GetLoginInfo(QString)", "KEY_BSECGB")
-        firewall = self.kiwoom.dynamicCall("GetLoginInfo(QString)", "FIREW_SECGB")
-        servertype = self.kiwoom.dynamicCall("GetLoginInfo(QString)", "GetSurverGubun")
-
-        if servertype == "1":
-            servertype = "Practice"
-        else:
-            servertype = "Real"
-        self.statusBar().showMessage(servertype)
-        self.accListcomboBox.addItems(accList)
-
-    def get_items(self, *market_list):
-        for market in market_list:
-            codeList = self.kiwoom.dynamicCall("GetCodeListByMarket(QString)", str(market)).split(';')
-            del codeList[-1]
-            for code in codeList:
-                name = self.kiwoom.dynamicCall("GetMasterCodeName(QString)", code)
-                self.itemList[code] = name
-
-    def search_Item(self, itemName):
-        for code, item in self.itemList.items():
-            if itemName == item:
-                self.itemCode.setPlainText(code)
-                self.get_iteminfo(code)
-
-    def get_iteminfo(self, code):
+    def search_item(self):
+        code = self.lineEdit.text()
+        self.textEdit.append("Item Code : " + code)
         self.kiwoom.dynamicCall("SetInputValue(QString, QString)", "종목코드", code)
-        self.kiwoom.dynamicCall("CommRqData(QString, QString, int, QString)", "coingo", "OPT10081", 0, "8888")
+        self.kiwoom.dynamicCall("CommRqData(QString, QString, int, QString)",
+                                "coingo", "opt10001", 0, "0101")
 
-    def receive_TrData(self, *args):
-        # args[1] is sRQName, args[2] is sTrcode
-        if args[1] == "coingo" and args[2] == "OPT10081":
-            curr_price = int(self.kiwoom.dynamicCall("GetCommData(QString, QString, int, QString", args[2], args[1], 0, "현재가"))
-            self.itemPrice.setValue(curr_price)
+    def receive_Trdata(self, *args):
+        if args[1] == "coingo": # args[1] is sRQName, args[2] is sTrcode
+            name = self.kiwoom.dynamicCall("CommGetData(QString, QString, QString, int, QString)",
+                                           args[2], "", args[1], 0, "종목명")
+            volume = self.kiwoom.dynamicCall("CommGetData(QString, QString, QString, int, QString)",
+                                             args[2], "", args[1], 0, "PER")
+            self.textEdit.append("Item name : " + name.strip())
+            self.textEdit.append("Volume : " + volume.strip())
 
 
 if __name__ == "__main__":
@@ -107,9 +60,3 @@ if __name__ == "__main__":
     myWindow = MyWindow()
     myWindow.show()
     app.exec_()
-
-
-
-
-
-
