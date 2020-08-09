@@ -12,6 +12,7 @@ from pandas import Series, DataFrame
 import pandas as pd
 import sqlite3
 import time
+import datetime
 
 TR_REQ_TIME_INTERVAL = 0.2
 
@@ -98,6 +99,10 @@ class Kiwoom(QAxWidget):
                 data_list.append(self._comm_get_data(trcode, "", rqname, i, feature))
             for j, feature_en in enumerate(features_en):
                 self.ohlcv[feature_en].append(data_list[j])
+            year = int(self.ohlcv["date"][-1][:4])
+            if year < 2018:
+                self.remained_data = False
+                break
 
 
 if __name__ == "__main__":
@@ -108,14 +113,14 @@ if __name__ == "__main__":
     kiwoom.ohlcv = {'date': [], 'open': [], 'high': [], 'low': [], 'close': [], 'volume': []}
     kiwoom.comm_connect()
     kiwoom.set_input_value("종목코드", "039490")
-    kiwoom.set_input_value("기준일자", "20170801")
+    kiwoom.set_input_value("기준일자", "20200801")
     kiwoom.set_input_value("수정주가구분", "1")
     kiwoom.comm_rq_data("coingo", "opt10081", 0, "0101")
 
     while kiwoom.remained_data is True:
         time.sleep(TR_REQ_TIME_INTERVAL)
         kiwoom.set_input_value("종목코드", "039490")
-        kiwoom.set_input_value("기준일자", "20170801")
+        kiwoom.set_input_value("기준일자", "20200801")
         kiwoom.set_input_value("수정주가구분", "1")
         kiwoom.comm_rq_data("coingo", "opt10081", 2, "0101")
 
@@ -127,4 +132,3 @@ if __name__ == "__main__":
     cursor.execute("SELECT * FROM table_039490")
     for one in cursor.fetchall():
         print(one)
-    
