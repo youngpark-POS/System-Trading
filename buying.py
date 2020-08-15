@@ -42,24 +42,13 @@ class Kiwoom(QAxWidget):
             print("Disconnected")
         self.login_event_loop.exit()
 
-    def search_item(self):
+    def market_search(self):
         code = self.lineEdit.text()
-        self.dynamicCall("SetInputValue(QString, QString)", "종목코드", code)
-        self.dynamicCall("CommRqData(QString, QString, int, QString)",
-                                "coingo", "opt10001", 0, "0101")
+        self.dynamicCall("SetInputValue(QString, QString)", "업종코드", code)
+        self.dynamicCall("CommRqData(QString, QString, int, QString)", "coingo", "opt20003", 0, "0101")
+
     def get_logininfo(self):
         account_num = self.dynamicCall("GetLoginInfo(QString)", "ACCNO")
-
-    def get_codelist(self, *args):
-        code_name_list = []
-        for arg in args:
-            code_list = self.dynamicCall("GetCodeListByMarket(QString)", str(arg)).split(';')
-            del code_list[-1]
-            for code in code_list:
-                name = self.dynamicCall("GetMasterCodeName(QString)", code)
-                code_name_list.append(code + " : " + name)
-        for code_name in code_name_list:
-            print(code_name)
 
     def comm_rq_data(self, rqname, trcode, next, screen_no):
         self.dynamicCall("CommRqData(QString, QString, int, QString)", rqname, trcode, next, screen_no)
@@ -73,7 +62,7 @@ class Kiwoom(QAxWidget):
             self.remained_data = False
 
         if args[1] == "coingo":  # args[1] is sRQName, args[2] is sTrcode
-            self._opt10081(args[1], args[2])
+            self._opt20006(args[1], args[2])
 
         try:
             self.tr_event_loop.exit()
@@ -88,11 +77,11 @@ class Kiwoom(QAxWidget):
                                code, realtype, fieldname, index, itemname)
         return ret.strip()
 
-    def _opt10081(self, rqname, trcode):
+    def _opt20006(self, rqname, trcode):
         data_cnt = self.dynamicCall("GetRepeatCnt(QString, QString)", trcode, rqname)
 
-        features = ["일자", "시가", "고가", "저가", "현재가", "거래량"]
-        features_en = ["date", "open", "high", "low", "close", "volume"]
+        features = ["일자", "종가"]
+        features_en = ["date", "close"]
         for i in range(data_cnt):
             data_list = []
             for feature in features:
@@ -106,29 +95,30 @@ if __name__ == "__main__":
 
     app = QApplication(sys.argv)
     kiwoom = Kiwoom()
-    kiwoom.ohlcv = {'date': [], 'open': [], 'high': [], 'low': [], 'close': [], 'volume': []}
+    kiwoom.ohlcv = {'date': [], 'close': []}
     kiwoom.comm_connect()
-    kiwoom.set_input_value("종목코드", "039490")
+    kiwoom.set_input_value("업종코드", "001")
     kiwoom.set_input_value("기준일자", "")
     kiwoom.set_input_value("수정주가구분", "1")
-    kiwoom.comm_rq_data("coingo", "opt10081", 0, "0101")
+    kiwoom.comm_rq_data("coingo", "opt20006", 0, "0101")
 
     while kiwoom.remained_data is True:
         time.sleep(TR_REQ_TIME_INTERVAL)
-        kiwoom.set_input_value("종목코드", "039490")
-        kiwoom.set_input_value("기준일자", "20170801")
+        kiwoom.set_input_value("업종코드", "001")
+        kiwoom.set_input_value("기준일자", "")
         kiwoom.set_input_value("수정주가구분", "1")
-        kiwoom.comm_rq_data("coingo", "opt10081", 2, "0101")
+        kiwoom.comm_rq_data("coingo", "opt20006", 2, "0101")
 
-    con = sqlite3.connect("stock.db")
-    df = DataFrame(kiwoom.ohlcv, columns = ["open", "high", "low", "close", "volume"], index = kiwoom.ohlcv["date"])
-    df.to_sql("table_039490", con, if_exists = "replace")
+    con = sqlite3.connect("marketINDEX.db")
+    df = DataFrame(kiwoom.ohlcv, columns = ["close"], index = kiwoom.ohlcv["date"])
+    df.to_sql("table_001", con, if_exists = "replace")
 
     cursor = con.cursor()
-    cursor.execute("SELECT * FROM table_039490")
-    for one in cursor.fetchall():
-        print(one)
-
-
-if "저가" < "고가":
-    print('완료')
+    result = cursor.execute("SELECT * FROM table_001")    # 개별종목코드를 전체 시장코드로 변환
+    row = result.fetchmany(20)
+    bf=row[19][1]    # 20일 전 종가
+    nw=row[0][1]    # 현재 일봉 중 종가
+    bh=int(bf)  # 숫자열 변환
+    nl=int(nw)
+    if nl > bh:
+        print("우상향 개이득")    # 나중에 print 부분은 매수 알고리즘으로 대체, 돌아가는지만 확인용.
