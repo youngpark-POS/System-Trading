@@ -13,7 +13,7 @@ from pandas import Series, DataFrame
 import pandas as pd
 import sqlite3
 import time
-import os,subprocess    # 프로세스 관련 모듈인데 혹시 몰라서 넣어놈
+import os, subprocess    # 프로세스 관련 모듈인데 혹시 몰라서 넣어놈
 
 TR_REQ_TIME_INTERVAL = 0.2
 
@@ -92,7 +92,7 @@ class Kiwoom(QAxWidget):
                 self.ohlcv[feature_en].append(data_list[j])
 
 
-class Conditon(QAxWidget):
+class Condition(QAxWidget):
     def __init__(self):
         super().__init__()
         self._create_instance()
@@ -151,7 +151,7 @@ if __name__ == "__main__":
         print("1번 알고리즘을 실행합니다.")
 
         app = QApplication(sys.argv)   # 조건검색 알고리즘 1
-        condition = Conditon()
+        condition = Condition()
         condition.condition_searh()
         condition.result_condition("0150", "알고리즘 1", 0, 1)
 
