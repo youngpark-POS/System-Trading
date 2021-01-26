@@ -58,7 +58,7 @@ class Kiwoom(QAxWidget):
         self.tr_event_loop.exec_()
 
     def receive_Trdata(self, *args):
-        if args[4] == '2':  # args[4] is next
+        if args[4] == '2':  # args[4] is "next"
             self.remained_data = True
         else:
             self.remained_data = False
@@ -109,7 +109,7 @@ class Condition(QAxWidget):
     def condition_search(self):
         self.dynamicCall("GetConditionLoad()")
         self.search_event_loop = QEventLoop()
-        self.search_event_loop.exec
+        self.search_event_loop.exec_()
         self.dynamicCall("GetConditionNameList()")
 
     def result_condition(self, screen_no, condition_name, nIndex, nSearch):
