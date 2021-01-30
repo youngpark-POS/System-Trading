@@ -117,6 +117,57 @@ class Condition(QAxWidget):
 
         ## 조건검색 결과 가공
 
+# incomplete class
+
+class Order(QAxWidget):
+    def __init__(self):
+        super().__init__()
+        self._create_instance()
+        self._set_signal_slots()
+
+    def _create_instance(self):
+        self.setControl("KHOPENAPI.KHOpenAPICtrl.1")
+
+    def _set_signals_slots(self):
+        self.OnReceiveTrData.connect(self.receive_trdata)
+        self.OnReceiveMsg.connect(self.receive_msg)
+        self.OnReceiveChejan.connect(self.order_balance)
+
+    def receive_Trdata(self, *args):
+        if args[4] == '2':  # args[4] is "next"
+            self.remained_data = True
+        else:
+            self.remained_data = False
+
+        if args[1] == "coingo":  # args[1] is sRQName, args[2] is sTrcode
+            self._opt20006(args[1], args[2])
+
+        try:
+            self.order_event_loop.exit()
+        except AttributeError:
+            pass
+
+    def send_order(self, rqname, screen_no, acc_no, order_type, code, quantity, price, hoga, order_no):
+        args = [rqname, screen_no, acc_no, order_type, code, quantity, price, hoga, order_no]
+        errno = self.dynamicCall("SendOrder(QString, QString, QString, int, QString, int, int, QString, QString)", args)
+
+        if errno != 0:
+            print("Error occured")
+        else:
+            self.order_event_loop = QEventLoop()
+            self.order_event_loop.exec_()
+
+    def receive_msg(self, screen_no, rqname, trcode, msg):
+        print("Screen No.{0}, User name {1}, TR code {2}".format(screen_no, rename, trcode))
+        print("Server message: {}".format(msg))
+
+    def order_balance(self, balance_type, item_cnt, FID_list):
+        FIDs = FID_list.split(";")
+        for FID in FIDs:
+            info = dynamicCall("GetChejanData(int)", FID)
+            print(info)
+
+
 
 if __name__ == "__main__":
 
