@@ -119,6 +119,7 @@ class Condition(QAxWidget):
 
 # incomplete class
 
+
 class Order(QAxWidget):
     def __init__(self):
         super().__init__()
@@ -133,6 +134,20 @@ class Order(QAxWidget):
         self.OnReceiveMsg.connect(self.receive_msg)
         self.OnReceiveChejan.connect(self.order_balance)
 
+    def send_order(self, rqname, screen_no, acc_no, order_type, code, quantity, price, hoga, order_no):
+        args = [rqname, screen_no, acc_no, order_type, code, quantity, price, hoga, order_no]
+        errno = self.dynamicCall("SendOrder(QString, QString, QString, int, QString, int, int, QString, QString)", args)
+
+        if errno != 0:
+            print("Error occured")
+        else:
+            self.order_event_loop_trdata = QEventLoop()
+            self.order_event_loop_msg = QEventLoop()
+            self.order_event_loop_chejan = QEventLoop()
+            self.order_event_loop_trdata.exec_()
+            self.order_event_loop_msg.exec_()
+            self.order_event_loop_chejan.exec_()
+
     def receive_Trdata(self, *args):
         if args[4] == '2':  # args[4] is "next"
             self.remained_data = True
@@ -143,29 +158,27 @@ class Order(QAxWidget):
             self._opt20006(args[1], args[2])
 
         try:
-            self.order_event_loop.exit()
+            self.order_event_loop_trdata.exit()
         except AttributeError:
             pass
-
-    def send_order(self, rqname, screen_no, acc_no, order_type, code, quantity, price, hoga, order_no):
-        args = [rqname, screen_no, acc_no, order_type, code, quantity, price, hoga, order_no]
-        errno = self.dynamicCall("SendOrder(QString, QString, QString, int, QString, int, int, QString, QString)", args)
-
-        if errno != 0:
-            print("Error occured")
-        else:
-            self.order_event_loop = QEventLoop()
-            self.order_event_loop.exec_()
 
     def receive_msg(self, screen_no, rqname, trcode, msg):
         print("Screen No.{0}, User name {1}, TR code {2}".format(screen_no, rename, trcode))
         print("Server message: {}".format(msg))
+        try:
+            self.order_event_loop_msg.exit()
+        except AttributeError:
+            pass
 
     def order_balance(self, balance_type, item_cnt, FID_list):
         FIDs = FID_list.split(";")
         for FID in FIDs:
             info = dynamicCall("GetChejanData(int)", FID)
             print(info)
+        try:
+            self.order_event_loop_chejan.exit()
+        except AttributeError:
+            pass
 
 
 
